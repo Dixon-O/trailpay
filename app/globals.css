@@ -1,26 +1,77 @@
 @import "tailwindcss";
 
+@theme {
+  --color-bg: #0a0b0f;
+  --color-bg-elevated: #13151c;
+  --color-bg-card: rgba(255, 255, 255, 0.04);
+  --color-accent: #f7931a;
+  --color-accent-soft: rgba(247, 147, 26, 0.12);
+  --color-success: #10b981;
+  --color-success-soft: rgba(16, 185, 129, 0.12);
+  --color-pending: #f59e0b;
+  --color-pending-soft: rgba(245, 158, 11, 0.12);
+  --color-danger: #ef4444;
+  --color-danger-soft: rgba(239, 68, 68, 0.12);
+  --color-info: #60a5fa;
+  --color-text: #f5f7fa;
+  --color-text-muted: #8b92a6;
+  --color-line: rgba(255, 255, 255, 0.08);
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-mono-jb), ui-monospace, monospace;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient gradient backdrop */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(70rem 50rem at 15% -10%, rgba(247, 147, 26, 0.10), transparent 60%),
+    radial-gradient(60rem 40rem at 100% 0%, rgba(96, 165, 250, 0.08), transparent 55%),
+    radial-gradient(50rem 40rem at 50% 120%, rgba(16, 185, 129, 0.06), transparent 60%);
+  pointer-events: none;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: #1a1206;
+}
+
+/* Thin custom scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 99px;
+}
+
+@utility glass {
+  background: var(--color-bg-card);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--color-line);
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
 }

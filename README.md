@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PesaShule ⚡
 
-## Getting Started
+**The programmable trust layer for African education.**
 
-First, run the development server:
+Diaspora parents lock a full year of school fees in Lightning escrow. Each term
+releases only when the school cryptographically confirms enrollment. Unused
+terms auto-refund to the sender. Built on the **Milestone-Locked Multi-Leg
+Escrow (MMLE)** primitive — a stack of hodl invoices, milestone-gated, with
+deterministic refund.
+
+This repo is a runnable hackathon MVP that works out-of-the-box with **zero
+cloud setup**: a local SQLite database and a mock Lightning backend that
+performs the *real* cryptographic operations of a hodl invoice (random
+preimage, SHA-256 payment hash, settle-by-preimage-reveal).
+
+## Quick start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The server auto-seeds 4 schools + a demo sender and starts the MMLE background
+ticker (opens windows, releases attested legs after the dispute window,
+auto-refunds expired legs).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Real Lightning mode (optional, requires Docker)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+To run against **real LND nodes** — where each term's hodl invoice is genuinely
+paid and held on a Lightning node, then settled by preimage reveal — spin up a
+local regtest network (two LND nodes + bitcoind, via Polar's images):
 
-## Learn More
+```bash
+npm run ln:up      # start bitcoind + payee (TrailPay) + payer (sender) nodes
+npm run ln:setup   # fund payer, open a channel, write .env.local (LIGHTNING_BACKEND=lnd)
+npm run dev        # restart — now using real nodes
+npm run ln:down    # tear everything down
+```
 
-To learn more about Next.js, take a look at the following resources:
+Verified behaviour on real nodes: creating a full-year contract pays and **holds**
+3 hodl invoices; attesting a term reveals the preimage and the school node
+receives the sats; a dropped-out term cancels the held HTLC and refunds the payer.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## The 90-second demo
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open **http://localhost:3000/demo** — a three-panel view (parent · school ·
+public audit). Drive it with the keyboard:
 
-## Deploy on Vercel
+| Key | Action |
+|-----|--------|
+| `1` | New contract — Amina (Dubai) → Kisumu Boys, full year, 3 hodl invoices |
+| `2` | School attests the open term → preimage releases → M-Pesa settles |
+| `3` | Open the next term's redemption window |
+| `4` | Student drops out → window closes unredeemed → **auto-refund** |
+| `0` | Reset demo |
+| `~` | Toggle the Lightning debug overlay (payment hashes + revealed preimages) |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The dispute window is collapsed to ~6s in demo mode (`DEMO_MODE=true`) so the
+full lifecycle is visible live. Set `DEMO_MODE=false` for production timing.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## How it works
+
+- `lib/mmle.ts` — the engine: contract creation, the per-leg state machine
+  (`pending → window_open → attested → released → settled` / `→ refunded`),
+  attestation, dispute, refund, and the idempotent `processTick()`.
+- `lib/lightning/index.ts` — pluggable backend interface. Ships `mock`;
+  production swaps in Voltage/LND via `lightning` (ln-service).
+- `lib/crypto.ts` — preimage generation, AES-256-GCM encryption at rest,
+  attestation signatures, beneficiary pseudonyms.
+- `lib/db/` — Drizzle schema + SQLite client (Postgres/Neon-portable shapes).
+- `lib/nostr/` — offline-safe audit-event id derivation (production: NDK → relays).
+- `instrumentation.ts` — seeds data + runs the background ticker on boot.
+
+## Verifying the cryptography
+
+The revealed preimage of any settled term hashes to its payment hash:
+
+```
+SHA256(leg.preimageRevealed) === leg.paymentHash
+```
+
+(Confirmed in the smoke test — see the demo flow above.)
+
+## Production swap-ins
+
+This MVP is structured so production is an additive swap, not a rewrite:
+
+| Layer | Demo | Production |
+|-------|------|------------|
+| Database | SQLite (`data/`) | Neon Postgres (same Drizzle schema) |
+| Lightning | mock hodl invoices | Voltage/LND via `lightning` |
+| Sender on-ramp | simulated | Stripe → Bitnob USD / Strike |
+| School off-ramp | simulated M-Pesa receipt | Bitnob B2B Paybill |
+| Attestation | HMAC signature | WebAuthn passkey |
+| Audit | derived event ids | Nostr (NIP-23 / NIP-01) via NDK |
+| Realtime | SSE + ticker | SSE + Vercel Cron + Fly.io LND stream |
+
+See `.env.example` and the root `pesashule_implementation_plan.md` for the full
+production roadmap.
