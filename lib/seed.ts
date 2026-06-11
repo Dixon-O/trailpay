@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 
 export const DEMO_SENDER = {
   id: "demo-sender-amina",
-  email: "amina@demo.pesashule.app",
+  email: "amina@demo.trailpay.app",
   displayName: "Amina Wanjiku",
   role: "sender",
   country: "AE",

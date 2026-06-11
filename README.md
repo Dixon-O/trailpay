@@ -1,4 +1,4 @@
-# PesaShule ⚡
+# TrailPay ⚡
 
 **The programmable trust layer for African education.**
 
@@ -96,5 +96,5 @@ This MVP is structured so production is an additive swap, not a rewrite:
 | Audit | derived event ids | Nostr (NIP-23 / NIP-01) via NDK |
 | Realtime | SSE + ticker | SSE + Vercel Cron + Fly.io LND stream |
 
-See `.env.example` and the root `pesashule_implementation_plan.md` for the full
+See `.env.example` and the root `trailpay_implementation_plan.md` for the full
 production roadmap.

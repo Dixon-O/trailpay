@@ -4,7 +4,7 @@ import { mkdirSync } from "fs";
 import { dirname, join } from "path";
 import * as schema from "./schema";
 
-const DB_PATH = process.env.DATABASE_FILE ?? join(process.cwd(), "data", "pesashule.db");
+const DB_PATH = process.env.DATABASE_FILE ?? join(process.cwd(), "data", "trailpay.db");
 
 mkdirSync(dirname(DB_PATH), { recursive: true });
 

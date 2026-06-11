@@ -34,7 +34,7 @@ function encodeMockBolt11(amountSats: number, paymentHash: string): string {
   // Realistic-looking testnet invoice string; not a routable invoice.
   const millisats = amountSats * 1000;
   const tag = paymentHash.slice(0, 52);
-  return `lntb${millisats}p1${tag}pesashulehodl`;
+  return `lntb${millisats}p1${tag}trailpayhodl`;
 }
 
 const mockBackend: LightningBackend = {

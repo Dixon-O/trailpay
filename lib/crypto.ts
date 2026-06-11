@@ -9,7 +9,7 @@ import {
 import { config } from "./config";
 
 /** Derive a stable 32-byte key from the configured secret. */
-const KEY = scryptSync(config.preimageKey, "pesashule.salt.v1", 32);
+const KEY = scryptSync(config.preimageKey, "trailpay.salt.v1", 32);
 
 export function sha256(data: Buffer | string): Buffer {
   return createHash("sha256").update(data).digest();
