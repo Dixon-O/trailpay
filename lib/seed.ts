@@ -1,5 +1,5 @@
-import { db, sqlite } from "./db/client";
-import { schools, users } from "./db/schema";
+import { db } from "./db/client";
+import { schools, users, contracts, legs, legEvents } from "./db/schema";
 import { eq } from "drizzle-orm";
 
 export const DEMO_SENDER = {
@@ -58,11 +58,12 @@ const SCHOOLS = [
   },
 ];
 
-export function seedDatabase() {
-  const existing = db.select().from(schools).all();
+export async function seedDatabase() {
+  const existing = await db.select().from(schools);
   if (existing.length > 0) return { seeded: false };
 
-  db.insert(users)
+  await db
+    .insert(users)
     .values({
       id: DEMO_SENDER.id,
       email: DEMO_SENDER.email,
@@ -71,21 +72,21 @@ export function seedDatabase() {
       country: DEMO_SENDER.country,
       lnAddress: DEMO_SENDER.lnAddress,
     })
-    .onConflictDoNothing()
-    .run();
+    .onConflictDoNothing();
 
   for (const s of SCHOOLS) {
-    db.insert(users)
+    await db
+      .insert(users)
       .values({
         id: s.adminId,
         displayName: s.adminName,
         role: "school_admin",
         country: s.country,
       })
-      .onConflictDoNothing()
-      .run();
+      .onConflictDoNothing();
 
-    db.insert(schools)
+    await db
+      .insert(schools)
       .values({
         slug: s.slug,
         name: s.name,
@@ -99,20 +100,18 @@ export function seedDatabase() {
         attestationPubkey: `pk_${s.adminId}`,
         verifiedAt: new Date(),
       })
-      .onConflictDoNothing()
-      .run();
+      .onConflictDoNothing();
   }
   return { seeded: true, schools: SCHOOLS.length };
 }
 
-export function resetDatabase() {
-  sqlite.exec(`
-    DELETE FROM leg_events;
-    DELETE FROM legs;
-    DELETE FROM contracts;
-    DELETE FROM schools;
-    DELETE FROM users;
-  `);
+export async function resetDatabase() {
+  // Delete in FK-dependency order.
+  await db.delete(legEvents);
+  await db.delete(legs);
+  await db.delete(contracts);
+  await db.delete(schools);
+  await db.delete(users);
   return seedDatabase();
 }
 
