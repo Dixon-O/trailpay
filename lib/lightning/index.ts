@@ -73,3 +73,5 @@ export function getLightning(): LightningBackend {
       return mockBackend;
   }
 }
+
+// TODO(the1riddle): Set up Voltage LND connection logic
