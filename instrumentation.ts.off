@@ -1,0 +1,26 @@
+/**
+ * Next.js instrumentation hook — runs once when the server boots.
+ * Seeds the demo data and starts the MMLE background ticker that opens due
+ * windows, releases attested legs after the dispute window, and auto-refunds
+ * expired legs. In production this work is a Vercel Cron + a Fly.io LND stream.
+ */
+export async function register() {
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+
+  const { seedDatabase } = await import("./lib/seed");
+  const { processTick } = await import("./lib/mmle");
+
+  seedDatabase();
+
+  const tick = async () => {
+    try {
+      await processTick();
+    } catch (err) {
+      console.error("[mmle-ticker]", err);
+    }
+  };
+
+  setInterval(tick, 1000);
+  console.log("[pesashule] demo seeded + MMLE ticker running");
+}
+// TODO(14emanuel): Transition from setInterval to Vercel Cron Jobs

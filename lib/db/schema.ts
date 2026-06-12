@@ -1,9 +1,10 @@
-import { pgTable, text, integer, real, boolean, timestamp, serial, jsonb } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 
 /**
- * Postgres (Neon) schema. Timestamps are real `timestamp` columns returning
- * Date objects; booleans are native; the leg_events PK is a serial. IDs are
- * text UUIDs generated app-side for portability.
+ * SQLite schema for the local/hackathon demo. The column shapes mirror the
+ * production Postgres/Drizzle schema in the implementation plan so the
+ * migration to Neon is a backend swap, not a redesign.
  */
 
 const id = () =>
@@ -11,9 +12,12 @@ const id = () =>
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID());
 
-const createdAt = () => timestamp("created_at").notNull().defaultNow();
+const createdAt = () =>
+  integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`);
 
-export const users = pgTable("users", {
+export const users = sqliteTable("users", {
   id: id(),
   email: text("email").unique(),
   phoneE164: text("phone_e164"),
@@ -25,7 +29,7 @@ export const users = pgTable("users", {
   createdAt: createdAt(),
 });
 
-export const schools = pgTable("schools", {
+export const schools = sqliteTable("schools", {
   id: id(),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
@@ -38,11 +42,11 @@ export const schools = pgTable("schools", {
   adminUserId: text("admin_user_id").references(() => users.id),
   attestationPubkey: text("attestation_pubkey"),
   nostrPubkey: text("nostr_pubkey"),
-  verifiedAt: timestamp("verified_at"),
+  verifiedAt: integer("verified_at", { mode: "timestamp_ms" }),
   createdAt: createdAt(),
 });
 
-export const contracts = pgTable("contracts", {
+export const contracts = sqliteTable("contracts", {
   id: id(),
   shortCode: text("short_code").notNull().unique(),
   senderId: text("sender_id")
@@ -58,26 +62,28 @@ export const contracts = pgTable("contracts", {
   contractSecret: text("contract_secret").notNull(),
   state: text("state").notNull().default("draft"),
   // draft | awaiting_payment | funded | active | completed | partially_refunded | fully_refunded | cancelled
-  totalAmountSats: integer("total_amount_sats").notNull(),
+  totalAmountSats: integer("total_amount_sats", { mode: "number" }).notNull(),
   totalAmountLocal: real("total_amount_local").notNull(),
   localCurrency: text("local_currency").notNull().default("KES"),
   senderCurrency: text("sender_currency").notNull().default("USD"),
   senderAmount: real("sender_amount").notNull(),
   feeAmount: real("fee_amount").notNull(),
-  fxHedgeEnabled: boolean("fx_hedge_enabled").default(false),
+  fxHedgeEnabled: integer("fx_hedge_enabled", { mode: "boolean" }).default(false),
   nostrEventId: text("nostr_event_id"),
   createdAt: createdAt(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
 });
 
-export const legs = pgTable("legs", {
+export const legs = sqliteTable("legs", {
   id: id(),
   contractId: text("contract_id")
     .notNull()
     .references(() => contracts.id),
   sequenceIndex: integer("sequence_index").notNull(),
   milestoneLabel: text("milestone_label").notNull(),
-  amountSats: integer("amount_sats").notNull(),
+  amountSats: integer("amount_sats", { mode: "number" }).notNull(),
   amountLocal: real("amount_local").notNull(),
   state: text("state").notNull().default("pending"),
   // pending | window_open | attested | released | settled | disputed | refund_initiated | refunded | cancelled
@@ -85,29 +91,29 @@ export const legs = pgTable("legs", {
   preimageEncrypted: text("preimage_encrypted"),
   preimageRevealed: text("preimage_revealed"),
   bolt11: text("bolt11"),
-  windowOpensAt: timestamp("window_opens_at").notNull(),
-  windowClosesAt: timestamp("window_closes_at").notNull(),
-  releaseScheduledAt: timestamp("release_scheduled_at"),
-  attestedAt: timestamp("attested_at"),
+  windowOpensAt: integer("window_opens_at", { mode: "timestamp_ms" }).notNull(),
+  windowClosesAt: integer("window_closes_at", { mode: "timestamp_ms" }).notNull(),
+  releaseScheduledAt: integer("release_scheduled_at", { mode: "timestamp_ms" }),
+  attestedAt: integer("attested_at", { mode: "timestamp_ms" }),
   attestedBy: text("attested_by").references(() => users.id),
   attestationSig: text("attestation_sig"),
-  releasedAt: timestamp("released_at"),
-  settledAt: timestamp("settled_at"),
-  refundedAt: timestamp("refunded_at"),
-  disputedAt: timestamp("disputed_at"),
+  releasedAt: integer("released_at", { mode: "timestamp_ms" }),
+  settledAt: integer("settled_at", { mode: "timestamp_ms" }),
+  refundedAt: integer("refunded_at", { mode: "timestamp_ms" }),
+  disputedAt: integer("disputed_at", { mode: "timestamp_ms" }),
   mpesaReceipt: text("mpesa_receipt"),
   createdAt: createdAt(),
 });
 
-export const legEvents = pgTable("leg_events", {
-  id: serial("id").primaryKey(),
+export const legEvents = sqliteTable("leg_events", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   legId: text("leg_id").references(() => legs.id),
   contractId: text("contract_id")
     .notNull()
     .references(() => contracts.id),
   eventType: text("event_type").notNull(),
   actor: text("actor").notNull(), // sender | school_admin | system | lnd | bitnob
-  payload: jsonb("payload").$type<Record<string, unknown>>(),
+  payload: text("payload", { mode: "json" }),
   nostrEventId: text("nostr_event_id"),
   createdAt: createdAt(),
 });

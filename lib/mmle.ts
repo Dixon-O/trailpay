@@ -337,29 +337,6 @@ export async function cancelAllOutstandingInvoices() {
   }
 }
 
-let lastTick = 0;
-let ticking = false;
-
-/**
- * Best-effort, throttled tick used to drive the state machine on serverless
- * (Vercel), where there is no long-lived setInterval. The UI polls the read
- * endpoints every 1-2s; each read nudges the machine forward. Throttled + guarded
- * so overlapping reads don't double-process. The Vercel Cron is a daily backstop.
- */
-export async function maybeTick(minIntervalMs = 750) {
-  const now = Date.now();
-  if (ticking || now - lastTick < minIntervalMs) return;
-  ticking = true;
-  lastTick = now;
-  try {
-    await processTick();
-  } catch {
-    /* best effort — never block a read */
-  } finally {
-    ticking = false;
-  }
-}
-
 /** Idempotent processor: opens due windows, releases attested legs, refunds expired. */
 export async function processTick() {
   const now = Date.now();
@@ -399,7 +376,6 @@ async function getLeg(legId: string): Promise<Leg> {
 }
 
 export async function getContractFull(idOrCode: string) {
-  await maybeTick();
   const contract =
     (await db.query.contracts.findFirst({ where: eq(contracts.id, idOrCode) })) ??
     (await db.query.contracts.findFirst({ where: eq(contracts.shortCode, idOrCode) }));
@@ -420,7 +396,6 @@ export async function getContractFull(idOrCode: string) {
 }
 
 export async function listContractsBySender(senderId: string) {
-  await maybeTick();
   const rows = await db
     .select()
     .from(contracts)
@@ -440,7 +415,6 @@ export async function listContractsBySender(senderId: string) {
 }
 
 export async function listPendingAttestations(schoolId: string) {
-  await maybeTick();
   const rows = await db
     .select()
     .from(contracts)

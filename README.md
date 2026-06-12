@@ -21,6 +21,12 @@ npm run dev
 # open http://localhost:3000
 ```
 
+If you hit node or Lightning connection issues, force the zero-setup mock backend:
+
+```bash
+LIGHTNING_BACKEND=mock npm run dev
+```
+
 The server auto-seeds 4 schools + a demo sender and starts the MMLE background
 ticker (opens windows, releases attested legs after the dispute window,
 auto-refunds expired legs).

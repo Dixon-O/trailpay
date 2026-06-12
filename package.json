@@ -6,15 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "db:push": "drizzle-kit push",
-    "db:generate": "drizzle-kit generate",
     "ln:up": "docker compose -f lightning-dev/docker-compose.yml up -d",
     "ln:down": "docker compose -f lightning-dev/docker-compose.yml down -v",
     "ln:setup": "tsx scripts/setup-lnd.ts",
     "ln:logs": "docker compose -f lightning-dev/docker-compose.yml logs -f"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.1.0",
+    "better-sqlite3": "^12.10.0",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "framer-motion": "^12.40.0",
@@ -27,6 +25,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

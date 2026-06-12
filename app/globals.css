@@ -22,6 +22,8 @@
 }
 
 :root {
+  --font-inter: system-ui;
+  --font-mono-jb: ui-monospace;
   color-scheme: dark;
 }
 
